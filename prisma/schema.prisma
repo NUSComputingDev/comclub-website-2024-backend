@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum Day {
+  MONDAY 
+  TUESDAY 
+  WEDNESDAY 
+  THURSDAY 
+  FRIDAY 
+  SATURDAY 
+  SUNDAY 
+}
+
+enum Semester {
+    SEMESTER_1 
+    SEMESTER_2 
+    SPECIAL_TERM_1
+    SPECIAL_TERM_2
+}
+
+enum LessonType {
+    LECTURE 
+    TUTORIAL 
+    LABORATORY 
+    SEMINAR 
+}
+
+enum CourseType {
+    COMPUTER_SCIENCE
+    BUSINESS_ANALYTICS
+    INFORMATION_SYSTEMS
+    INFORMATION_SECURITY
+    COMPUTER_ENGINEERING
+}
+
+model CompletionRequirement {
+    id String @id @default(uuid())
+    course Course @relation(fields: [courseId], references: [id])
+    courseId String
+    cumulativeCreditRequirements Int
+
+    coreRequirements CoreRequirement[]
+    electiveRequirements ElectiveRequirement[]
+    universityLevelRequirement UniversityLevelRequirement[]
+}
+
+model CoreRequirement {
+    completionRequirement CompletionRequirement @relation(fields: [id], references: [id])
+    id String @id
+    doubleCountingModules Int
+
+    modules Module[]
+}
+
+model ElectiveRequirement {
+    completionRequirement CompletionRequirement @relation(fields: [id], references: [id])
+    id String @id
+
+    modules Module[]
+
+}
+
+model UniversityLevelRequirement {
+    completionRequirement CompletionRequirement @relation(fields: [id], references: [id])
+    id String @id
+
+    modules Module[]
+}
+
+model User {
+    id        String      @id @default(uuid())
+    userEmail   String @db.VarChar(255) @unique
+    userName     String   @db.VarChar(255) 
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    course Course? @relation(fields: [courseId], references: [id])
+    courseId String?
+}
+
+model Course {
+    id String @id @default(uuid())
+    courseType CourseType
+    creditsRequirement Int
+
+    users User[]
+    completionRequirements CompletionRequirement[]
+}
+
+model Module {
+    id            String      @id @default(uuid())
+    academicYear  String   // 2023-2024
+    code          String @unique 
+    name          String
+    description   String?
+    credit        Int 
+    faculty       String 
+    department    String 
+    canSU         Boolean
+    aliases       String[] // Store aliase module ids 
+    semesterOffered Semester[]
+    prerequisiteTree Json?
+    coreRequirement CoreRequirement @relation(fields: [coreId], references: [id])
+    coreId          String
+    electiveRequirement ElectiveRequirement @relation(fields: [electiveId], references: [id])
+    electiveId      String
+    universityLevelRequirement UniversityLevelRequirement @relation(fields: [universityLevelRequirementId], references: [id])
+    universityLevelRequirementId String
+
+
+    currentMods Prerequisite[] @relation(name: "Current Mod Prereq")
+    prereqMods Prerequisite[] @relation(name: "Prereq Mod")
+    currentModsCoreq Corequisite[] @relation(name: "Current Mod Coreq")
+    coreqMods Corequisite[] @relation(name: "Coreq Mod")
+    currentModPrecludes Preclusion[] @relation(name: "Current Mod Preclude")
+    precludeMods Preclusion[] @relation(name: "Preclude Mod")
+    rawLessons RawLesson[]
+    semesterData SemesterData[]
+    exemptedModules ModuleExemption[]
+}
+
+model Prerequisite {
+    id        String      @id @default(uuid())
+    currentMod Module  @relation(name: "Current Mod Prereq", fields: [currentModId], references: [id])
+    currentModId String 
+    prereqMod Module @relation(name: "Prereq Mod", fields: [prereqModId], references: [id])
+    prereqModId String 
+    @@unique([currentModId, prereqModId])
+}
+
+model Corequisite {
+    id        String      @id @default(uuid())
+    currentMod Module  @relation(name: "Current Mod Coreq", fields: [currentModId], references: [id])
+    currentModId String 
+    coreqMod Module @relation(name: "Coreq Mod", fields: [coreqModId], references: [id])
+    coreqModId String 
+    @@unique([currentModId, coreqModId])
+}
+
+
+model Preclusion {
+    id        String      @id @default(uuid())
+    currentModule Module  @relation(name: "Current Mod Preclude", fields: [currentModuleId], references: [id])
+    currentModuleId String 
+    precludeModule Module @relation(name: "Preclude Mod", fields: [precludeModuleId], references: [id])
+    precludeModuleId String 
+    @@unique([currentModuleId, precludeModuleId])
+}
+
+model RawLesson {
+    id        String      @default(uuid())
+    module   Module       @relation(fields: [moduleId], references: [id])
+    moduleId String
+    semester Int 
+    classNo   String 
+    day       Day 
+    startTime String   // 0900
+    endTime   String   // 1100 
+    lessonType LessonType
+    venue String
+    weeks Int[]
+    size  Int?
+    @@unique([moduleId, classNo, semester])
+}
+
+model SemesterData {
+    module Module @relation(fields: [moduleId], references: [id])
+    moduleId String 
+    semester  Semester
+    examDate  DateTime?
+    examDuration  Int? // minutes 
+
+    @@id([moduleId, semester])
+}
+
+model Exemption {
+    id String @id @default(uuid())
+    exemptionName String
+    moduleExemptions ModuleExemption[]
+    mceExemptions MCExemption[]
+}
+
+model ModuleExemption {
+    exemption Exemption @relation(fields: [exemptionId], references: [id])
+    exemptionId String @id
+    exemptedModule Module @relation(fields: [moduleId], references: [id])
+    moduleId String
+}
+
+model MCExemption {
+    exemption Exemption @relation(fields: [exemptionId], references: [id])
+    exemptionId String @id
+    exemptionNumber Int
+}
+
