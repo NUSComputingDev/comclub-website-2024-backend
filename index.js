@@ -11,6 +11,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// service router
+app.use("/service", serviceRouter);
+
 // Mount the individual routers into the main application
 mountRoutes(app);
 
