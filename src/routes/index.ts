@@ -1,4 +1,5 @@
 import Express from "express";
+import ModuleService from "../services/moduleService";
 
 
 const router = Express.Router();
@@ -8,7 +9,7 @@ const router = Express.Router();
 // router.post("/validate/otp", AuthController.ValidateOTP);
 
 // // MODULES -------------------------------------
-// router.get("/me", VerifyJWTToken, UserProfileController.GetUserProfile);
+router.get("/modules", ModuleService.getAllModules)
 // router.put("/me", VerifyJWTToken, UserProfileController.UpdateUserProfile);
 // router.get(
 //   "/me/sessions",
